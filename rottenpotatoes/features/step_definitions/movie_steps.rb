@@ -2,7 +2,7 @@
 
 Given /the following movies exist/ do |movies_table|
   movies_table.hashes.each do |movie|
-  Movie.create!(title: movie[:title], rating: movie[:rating], release_date: movie[:release_date])
+    Movie.create!(title: movie[:title], rating: movie[:rating], release_date: movie[:release_date])
   end
 end
 
@@ -23,14 +23,41 @@ end
 #  "When I uncheck the following ratings: PG, G, R"
 #  "When I check the following ratings: G"
 
-When /I (un)?check the following ratings: (.*)/ do |uncheck, rating_list|
-  # HINT: use String#split to split up the rating_list, then
-  #   iterate over the ratings and reuse the "When I check..." or
-  #   "When I uncheck..." steps in lines 89-95 of web_steps.rb
-  fail "Unimplemented"
+When /I (un)?check the following ratings: (.*)/ do |is_uncheck, rating_list|
+  rating_list.split(",").each do |rating|
+    if is_uncheck == nil
+      check("ratings[%s]" % rating.strip)
+    else
+      uncheck("ratings[%s]" % rating.strip)
+    end
+  end
+end
+
+When /I (un)?check all ratings/ do |is_uncheck|
+    Movie.select(:rating).map(&:rating).uniq.each do |rating|
+    if is_uncheck == nil
+      check("ratings[%s]" % rating)
+    else
+      uncheck("ratings[%s]" % rating)
+    end
+  end
+end
+
+Then /I should (not )?see: (.*)$/ do |is_not, movies_list|
+  movies = movies_list.split(',')
+  movies.each do |movie|
+    if is_not == nil
+      expect(page).to have_content(movie.strip)
+    else
+      expect(page).not_to have_content(movie.strip)
+    end
+  end
 end
 
 Then /I should see all the movies/ do
   # Make sure that all the movies in the app are visible in the table
-  fail "Unimplemented"
+  Movie.select(:title).map(&:title).each do |movie|
+    expect(page).to have_content(movie)
+    expect(page).to have_xpath("//tr", count: 11)
+  end
 end
